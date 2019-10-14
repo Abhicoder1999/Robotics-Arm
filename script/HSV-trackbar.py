@@ -4,19 +4,20 @@ import numpy as np
 def nothing(x):
     pass
  
-cap = cv2.VideoCapture(0)
+#cap = cv2.VideoCapture(0)
 cv2.namedWindow("Trackbars")
  
 cv2.createTrackbar("L - H", "Trackbars", 0, 179, nothing)
 cv2.createTrackbar("L - S", "Trackbars", 0, 255, nothing)
-cv2.createTrackbar("L - V", "Trackbars", 0, 255, nothing)
+cv2.createTrackbar("L - V", "Trackbars", 84, 255, nothing)
 cv2.createTrackbar("U - H", "Trackbars", 179, 179, nothing)
 cv2.createTrackbar("U - S", "Trackbars", 255, 255, nothing)
 cv2.createTrackbar("U - V", "Trackbars", 255, 255, nothing)
  
  
 while True:
-    _, frame = cap.read()
+    #_, frame = cap.read()
+    frame = cv2.imread("../data/fingers/train/0a2e7a71-e702-4f3d-9add-282d38163277_2L.png")    
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
  
     l_h = cv2.getTrackbarPos("L - H", "Trackbars")

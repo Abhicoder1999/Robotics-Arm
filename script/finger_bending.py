@@ -5,7 +5,7 @@ Created on Sat Apr  7 20:39:32 2018
 
 @author: abhijeet
 """
-import cv2;
+import cv2
 import numpy as np
 import time
 import serial
