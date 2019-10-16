@@ -1,6 +1,8 @@
  
 import cv2
-
+import os
+from matplotlib import image
+import numpy as np
 
 ##################FUNCTIONS##################################
 
@@ -8,8 +10,8 @@ def nothing(x):
     pass
 
 
-def thresh_visual():
-    frame = cv2.imread("../data/fingers/train/0a2e7a71-e702-4f3d-9add-282d38163277_2L.png")    
+def thresh_visual(pathname):
+    frame = cv2.imread(pathname)    
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
     cv2.namedWindow("Trackbars")
@@ -25,13 +27,24 @@ def thresh_visual():
         key = cv2.waitKey(1)
         if key == 27:
             break
+        
+def store_data(pathname,destname):
+    dir_list = os.listdir(pathname)
+    kernel = np.ones((2,2),np.uint8)
+    
+    for item in dir_list:
+        frame = cv2.imread(pathname + item)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        ret,thr = cv2.threshold(gray,84,255,cv2.THRESH_BINARY)
+        thr = cv2.morphologyEx(thr,cv2.MORPH_CLOSE,kernel)        
+        image.imsave( destname + item, thr)    
+        pass
+    
 #######################START##############################
 
-
-
-
-
-
+pathname = "../data/fingers/modified/"
+destname = "../data/fingers/modified/"
+store_data(pathname,destname)
 
 
 ###################################END######################
