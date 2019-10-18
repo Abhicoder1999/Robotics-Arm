@@ -76,7 +76,7 @@ for i in X_data2_test:
 for j in X_data2_train:
   X_data1_train.append(j)
 
-print(np.array(X_data1_train).shape) 
+print(np.array(X_data1_train).shape)
 print(np.array(X_data1_test).shape)
 
 labels1 = np.ones(len(X_data1_train),dtype='int64')
