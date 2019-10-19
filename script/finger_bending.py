@@ -20,7 +20,7 @@ diff_thr = 50
 
 cap = cv2.VideoCapture(0)
 kernel = np.ones((5,5),np.uint8)
-ser = serial.Serial('/dev/ttyACM0',9600)
+ser = serial.Serial('/dev/ttyUSB0',9600)
 
 def send(i):
 	if i == 0:
@@ -36,7 +36,7 @@ def send(i):
 	if i == 6:
 		ser.write('r')
 
-	
+
 
 def serialCall(f):
 	ser.write('s')
@@ -44,14 +44,14 @@ def serialCall(f):
 		if f[i] == 0:
 			print(i)
 			send(i)
-	ser.write('z')				
-	
+	ser.write('z')
+
 
 while True:
     _,frame = cap.read();
     hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
 
-    lower_red = np.array([115,0,101])
+    lower_red = np.array([0,57,79])
     upper_red = np.array([179,255,255])
     #logic
     mask = cv2.inRange(hsv, lower_red, upper_red)
@@ -59,10 +59,10 @@ while True:
     _,contours,_= cv2.findContours(closing.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     center = np.zeros(5)
     count = 0
-    
+
     try:
 	#print("try")
-	contours.sort( key = cv2.contourArea,reverse=True)	
+	contours.sort( key = cv2.contourArea,reverse=True)
 	for i in range(5):
 		#print("range")
     		c = contours[i]
@@ -73,59 +73,59 @@ while True:
     			cx = int(M['m10']/M['m00'])
     			cy = int(M['m01']/M['m00'])
 			center[count] = cx
-			
-			count = count + 1	    			
+
+			count = count + 1
 			cv2.circle(frame,(cx,cy),6,(0,0,255),-1)
     			cv2.drawContours(frame, c, -1, (0,255,0), 3)
 			if prv_center[0] != 0.0:
 				for j in range(4):
 					avg_center = (int)(math.floor((prv_center[j+1]+prv_center[j])/2))
 					cv2.line(frame,(avg_center,0),(avg_center,511),(255,0,0),2)
-	print("for out",count,prv_count)	
+	print("for out",count,prv_count)
 	if count == 5:
 		prv_center = center;
 		print("5 fingers detected",count,prv_count)
 		prv_center.sort()
 		send(6)
 		print(6)
-	
+
 
 	if count < 5 and count == prv_count:
 		print("less than 5 ",count,prv_count," ",time_elapsed)
 		time_elapsed = time_elapsed+1
-			
+
 		if time_elapsed > time_thr:
 			finger = {0:0,1:0,2:0,3:0,4:0}
 			center.sort()
-			print(center,prv_center)	
+			print(center,prv_center)
 			for i in range(5):#
 				diff = [0,0,0,0,0]
 				temp = 0
 				for j in range(5):
 					diff[temp] = abs(prv_center[j] - center[i])
-					temp = temp+1			
+					temp = temp+1
 				minpos = diff.index(min(diff))
 				print(center[i],diff,minpos)
-				if diff[minpos] <= diff_thr:				
+				if diff[minpos] <= diff_thr:
 					finger[minpos] = 1
 			print(finger)
 			serialCall(finger)
 			time_elapsed = 0
-		
+
 	if count>prv_count or count<prv_count:
 		time_elapsed = 0
-		#print("else case")		
-		prv_count = count	
-	
+		#print("else case")
+		prv_count = count
+
 	prv_count = count
 	print("prv_update",prv_count)
-		
-    except ValueError: 	
+
+    except ValueError:
 	cv2.imshow("frame",frame)
     except IndexError:
 	cv2.imshow("frame",frame)
     except ZeroDivisionError:
-	println("no contours") 
+	println("no contours")
 	cv2.imshow("frame",frame)
 
     cv2.imshow("frame",frame)
@@ -154,4 +154,3 @@ cv2.waitKey(1)
 cv2.waitKey(1)
 cv2.waitKey(1)
 cv2.waitKey(1)
-

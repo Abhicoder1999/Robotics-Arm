@@ -30,6 +30,8 @@ while True:
     lower_blue = np.array([l_h, l_s, l_v])
     upper_blue = np.array([u_h, u_s, u_v])
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    #kernel = np.ones((5,5),np.uint8)
+    #closing = cv2.morphologyEx(mask,cv2.MORPH_OPEN,kernel)
 
     result = cv2.bitwise_and(frame, frame, mask=mask)
 
