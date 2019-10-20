@@ -11,11 +11,13 @@ import os
 from matplotlib import pyplot as plt
 import numpy as np
 from keras.models import load_model
+from skimage import io, transform
 
 def nothing(x):
     pass
 
 model = load_model("model2.h5")
+kernel = np.ones((3,3),np.uint8)
 #lower_blue = np.array([0, 0, 0])
 #upper_blue = np.array([0, 0, 0])
 
@@ -46,7 +48,8 @@ def HSV_setting():
         lower_blue = np.array([l_h, l_s, l_v])
         upper_blue = np.array([u_h, u_s, u_v])
         mask = cv2.inRange(hsv, lower_blue, upper_blue)
-        cv2.imshow("mask", mask)
+        closing = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,kernel)
+        cv2.imshow("mask", closing)
         values = np.array([lower_blue,upper_blue])
 
 
@@ -94,12 +97,12 @@ def lineDetection (edges, img):
 #frame = cv2.imread(pathname + dir_list[110])
 
 ################# CALLIBRARTION ####################
-temp = HSV_setting()
-lower_blue = temp[0]
-upper_blue = temp[1]
+#temp = HSV_setting()
+#lower_blue = temp[0]
+#upper_blue = temp[1]
 
-#lower_blue = np.array([0, 0, 84])
-#upper_blue = np.array([179, 255, 255])
+lower_blue = np.array([36, 28, 0])
+upper_blue = np.array([113, 212, 114])
 
 ############### PROCESSING ##############################
 kernel = np.ones((3,3),np.uint8)
@@ -118,8 +121,10 @@ while True:
         break
 
     elif key == 113:
-
-        temp = np.expand_dims((closing), axis=3)
+        mg_read = transform.resize(closing, (128,128), mode = 'constant')
+        
+        #print(mg_read.shape)
+        temp = np.expand_dims((mg_read), axis=3)
         print(temp.shape)
         temp = np.expand_dims((temp), axis=0)
         print(temp.shape)
@@ -134,7 +139,7 @@ while True:
 
 ##################Segmentation####################
 #dist = cv2.distanceTransform(closing, cv2.DIST_L2, 3)
-#dist = cv2.normalize(dist, 0, 1.0, cv2.NORM_MINMAX)
+#dist = cv2.normalize(dist, 0, 1.0, cv2.NORM_MINMAX)m
 #plt.imshow(dist)
     # ind = np.unravel_index(np.argmax(dist, axis=Nomask = cv2.inRange(hsv, lower_blue, upper_blue)ne), dist.shape)
     # ret, mask = cv2.threshold(dist,0.7*dist.max(),255,0)
