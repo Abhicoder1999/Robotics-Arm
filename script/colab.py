@@ -50,12 +50,14 @@ print(x_train.shape,y_train.shape)
 img_path = glob.glob("/content/drive/My Drive/test/test_modified/*")
 print(np.array(img_path).shape)
 count = 0
+
 for path in img_path:
   image = cv2.imread(path)
   x_test.append(image)
   y_test.append(int(path[-6]))
   count +=1
   print(count)
+
 x_test = np.array(x_test)
 y_test = np.array(y_test)
 y_test = keras.utils.to_categorical(y_test, num_classes = 6)
@@ -63,6 +65,7 @@ print(x_test.shape,y_test.shape)
 
 x_train_gr = np.zeros([len(x_train),128,128])
 x_test_gr = np.zeros([len(x_test),128,128])
+
 for k in range(len(x_train)):
   temp = x_train[k]
   temp = cv2.cvtColor(temp, cv2.COLOR_BGR2GRAY)

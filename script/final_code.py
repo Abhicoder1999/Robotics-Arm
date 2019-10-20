@@ -1,11 +1,21 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Oct 20 11:51:09 2019
+
+@author: abhijeet
+"""
+
 import cv2
+import keras
 import os
 from matplotlib import pyplot as plt
 import numpy as np
+from keras.models import load_model
 
 def nothing(x):
     pass
 
+model = load_model("model2.h5")
 #lower_blue = np.array([0, 0, 0])
 #upper_blue = np.array([0, 0, 0])
 
@@ -23,8 +33,7 @@ def HSV_setting():
     cap = cv2.VideoCapture(0)
 
     while True:
-        # _, frame = cap.read()
-        frame = cv2.imread("../data/fingers/fingers/train/0a2e7a71-e702-4f3d-9add-282d38163277_2L.png")
+        _, frame = cap.read()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         l_h = cv2.getTrackbarPos("L - H", "Trackbars")
@@ -78,43 +87,55 @@ def lineDetection (edges, img):
 #pathname = "../data/fingers/modified/"
 #dir_list = os.listdir(pathname)
 #cv2.createTrackbar("L - V", "Trackbars", 84, 255, nothing)
-pathname = "../data/fingers/fingers/train/"
-dir_list = os.listdir(pathname)
 
-frame = cv2.imread(pathname + dir_list[110])
+#pathname = "../data/fingers/fingers/train/"
+#dir_list = os.listdir(pathname)
 
-# temp = HSV_setting()
-# lower_blue = temp[0]
-# upper_blue = temp[1]
+#frame = cv2.imread(pathname + dir_list[110])
 
-lower_blue = np.array([0, 0, 84])
-upper_blue = np.array([179, 255, 255])
+################# CALLIBRARTION ####################
+temp = HSV_setting()
+lower_blue = temp[0]
+upper_blue = temp[1]
 
+#lower_blue = np.array([0, 0, 84])
+#upper_blue = np.array([179, 255, 255])
 
+############### PROCESSING ##############################
 kernel = np.ones((3,3),np.uint8)
 cap = cv2.VideoCapture(0)
 
 while True:
-    # _,frame = cap.read()
+    _,frame = cap.read()
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
     closing = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,kernel)
     cv2.imshow("closed",closing)
-
-    dist = cv2.distanceTransform(closing, cv2.DIST_L2, 3)
-    dist = cv2.normalize(dist, 0, 1.0, cv2.NORM_MINMAX)
-    plt.imshow(dist)
 
 
     key = cv2.waitKey(1)
     if key == 27:
         break
 
+    elif key == 113:
+
+        temp = np.expand_dims((closing), axis=3)
+        print(temp.shape)
+        temp = np.expand_dims((temp), axis=0)
+        print(temp.shape)
+        
+        predictions = model.predict(temp)
+        
+        print(predictions)
+        print(np.argmax(predictions[0]))
+        print("working")
+        
+        continue
 
 ##################Segmentation####################
-dist = cv2.distanceTransform(closing, cv2.DIST_L2, 3)
-dist = cv2.normalize(dist, 0, 1.0, cv2.NORM_MINMAX)
-plt.imshow(dist)
+#dist = cv2.distanceTransform(closing, cv2.DIST_L2, 3)
+#dist = cv2.normalize(dist, 0, 1.0, cv2.NORM_MINMAX)
+#plt.imshow(dist)
     # ind = np.unravel_index(np.argmax(dist, axis=Nomask = cv2.inRange(hsv, lower_blue, upper_blue)ne), dist.shape)
     # ret, mask = cv2.threshold(dist,0.7*dist.max(),255,0)
 
