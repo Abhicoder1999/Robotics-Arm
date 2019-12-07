@@ -56,6 +56,41 @@ def circShifting(image, shift):
     check = cv2.warpAffine(image, T, (width, height))
     check[:][:shift] = temp
     return check
+    
+def preProcess(image):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    closing = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,kernel)
+    return closing
+    
+def findCentroid(image):
+    _,contours,_= cv2.findContours(image.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)        
+    contours.sort( key = cv2.contourArea,reverse=True)
+    c = contours[0]
+    M = cv2.moments(c)
+    cx = int(M['m10']/M['m00'])
+    cy = int(M['m01']/M['m00'])
+    return (cx,cy)
+
+def polarConv(image,kernel,center):
+    edge = cv2.Canny(image,100,200)    
+    edge = cv2.dilate(edge,kernel,iterations = 1)
+    polar = cv2.linearPolar(edge, center, 40, cv2.WARP_FILL_OUTLIERS)      
+    return polar
+    
+def rotateImg(image,center,angle,scale):
+    height, width = image.shape[:2]
+    M = cv2.getRotationMatrix2D(center, angle, scale)
+    rotated = cv2.warpAffine(image, M, (width, height))
+    return rotated
+
+def circConv(polar,rpolar,height,shiftkey):
+    res = np.zeros((1,int(height/shiftkey)))    
+    for i in range(int(height/shiftkey)):   
+        temp = circShifting(rpolar,(i+1)*shiftkey)
+        res[0][i] = np.sum(np.multiply(polar,temp))
+    return res
+
 
 #############Data-Loading####################
 
@@ -66,7 +101,7 @@ def circShifting(image, shift):
 pathname = "../../data/fingers/fingers/train/"
 dir_list = os.listdir(pathname)
 
-frame = cv2.imread(pathname + dir_list[12])
+frame = cv2.imread(pathname + dir_list[14])
 lower_blue = np.array([0, 0, 84])
 upper_blue = np.array([179, 255, 255])
 
@@ -82,39 +117,21 @@ cap = cv2.VideoCapture(0)
 ############ Algorithm #####################
 while True:
     #_,frame = cap.read()
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    closing = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,kernel)
+    height, width = frame.shape[:2]
+    closing = preProcess(frame)
     cv2.imshow("closed",closing)
-
-    _,contours,_= cv2.findContours(closing.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)        
-    contours.sort( key = cv2.contourArea,reverse=True)
-    c = contours[0]
-    M = cv2.moments(c)
-    cx = int(M['m10']/M['m00'])
-    cy = int(M['m01']/M['m00'])
     
-    kernel = np.ones((3,3),np.uint8)
-    edge = cv2.Canny(closing,100,200)    
-    edge = cv2.dilate(edge,kernel,iterations = 1)
-    polar = cv2.linearPolar(edge, (cx, cy), 40, cv2.WARP_FILL_OUTLIERS)      
+    center = findCentroid(closing.copy())
+    kernel = np.ones((3,3),np.uint8)    
+    polar = polarConv(closing,kernel,center)
     cv2.imshow("polar",polar)
     
-    ########## Linear Convolution in images ################
     #data gen
-    center = (cx, cy)
-    height, width = closing.shape[:2]
     scale = 1
     angle = 340  
-    M = cv2.getRotationMatrix2D(center, angle, scale)
-    rotated = cv2.warpAffine(closing, M, (width, height)) 
-    cv2.imshow("rotated",rotated)   
-    
-    ## Polar conv
-    kernel = np.ones((3,3),np.uint8)
-    edge = cv2.Canny(rotated,100,200)    
-    edge = cv2.dilate(edge,kernel,iterations = 1)
-    rpolar = cv2.linearPolar(edge, (cx, cy), 40, cv2.WARP_FILL_OUTLIERS)      
+    rclosing = rotateImg(closing,center,angle,scale)
+    cv2.imshow("rotated",rclosing)
+    rpolar = polarConv(rclosing,kernel,center)    
     cv2.imshow("polar_rotated",rpolar)
     
    
@@ -123,44 +140,11 @@ while True:
         break
 
  ##convolution
-shift = 1
-res = np.zeros((1,int(height/shift)))    
-for i in range(int(height/shift)):
-    temp = circShifting(rpolar,(i+1)*shift)
-    res[0][i] = np.sum(np.multiply(polar,temp))
-
+shiftkey = 1 #no of gaps between conv)
+res = circConv(polar,rpolar,height,shiftkey)
 ans = np.where(res == np.amax(res))
 print((ans[1]+1)*360/128)
-##################Segmentation####################
-#dist = cv2.distanceTransform(closing, cv2.DIST_L2, 3)
-#dist = cv2.normalize(dist, 0, 1.0, cv2.NORM_MINMAX)
-#laplacian = cv2.Laplacian(dist,cv2.CV_64F)
-#laplacian1 = laplacian/laplacian.max()
-#cv2.imshow('a7',laplacian1)
-#cv2.waitKey(0)
 
-#plt.subplot(2,1,1)
-#plt.imshow(dist)
-#plt.subplot(2,1,2)
-#plt.imshow(laplacian)
-
-
-
-    # ind = np.unravel_index(np.argmax(dist, axis=Nomask = cv2.inRange(hsv, lower_blue, upper_blue)ne), dist.shape)
-    # ret, mask = cv2.threshold(dist,0.7*dist.max(),255,0)
-
-#kernel = np.ones((5,5),np.uint8)
-#mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN,kernel)
-    # cv2.imshow(mask)
-
-#now find the mask angle using hough line estimation
-
-#lines = cv2.HoughLinesP(mask,2,np.pi/180,56,minLineLength = 51,maxLineGap = 300)
-#if lines is not None:
-#    for line in lines:
-#        x1,y1,x2,y2 = line[0]
-#        cv2.line(gray,(x1,y1),(x2,y2),(0,255,0),2)
-#        cv2.circle(gray,((x1+x2)/2,(y1+y2)/2), 3, (0,0,255), -1)
 
 cap.release()
 cv2.destroyAllWindows()
