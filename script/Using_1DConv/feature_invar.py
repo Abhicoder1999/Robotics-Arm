@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Mar  3 12:31:10 2020
+
+@author: abhijeet
+"""
+
 import cv2
 import os
 from matplotlib import pyplot as plt
@@ -23,7 +30,7 @@ def HSV_setting():
     cap = cv2.VideoCapture(0)
 
     while True:
-       # _, frame = cap.read()
+        _, frame = cap.read()
         frame = cv2.imread("../data/fingers/fingers/train/0a2e7a71-e702-4f3d-9add-282d38163277_2L.png")
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -48,59 +55,31 @@ def HSV_setting():
     cap.release()
     cv2.destroyAllWindows()
     return values
-
-def circShifting(image, shift):
-    height, width = image.shape[:2]
-    T = np.float32([[1, 0, 0], [0, 1, shift]]) 
-    temp = image[:][-shift:]
-    check = cv2.warpAffine(image, T, (width, height))
-    check[:][:shift] = temp
-    return check
     
 def preProcess(image):
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
     closing = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,kernel)
     return closing
     
 def findCentroid(image,RGB):
-    _,contours,_= cv2.findContours(image.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)        
-    contours.sort( key = cv2.contourArea,reverse=True)
-    c = contours[0]
-    M = cv2.moments(c)
-    cx = int(M['m10']/M['m00'])
-    cy = int(M['m01']/M['m00'])
-    
-    extLeft = tuple(c[c[:, :, 0].argmin()][0])
-    extRight = tuple(c[c[:, :, 0].argmax()][0])
-    extTop = tuple(c[c[:, :, 1].argmin()][0])
-    extBot = tuple(c[c[:, :, 1].argmax()][0])
-  #  cv2.drawContours(RGB.copy(), [c], -1, (0, 255, 255), 2)
-  #  cv2.circle(RGB.copy(), extLeft, 8, (0, 0, 255), -1)
-  #  cv2.circle(RGB, extRight, 8, (0, 255, 0), -1)
-  #  cv2.circle(RGB, extTop, 8, (255, 0, 0), -1)
-  #  cv2.circle(RGB, extBot, 8, (255, 255, 0), -1)
+    try:
+        _,contours,_= cv2.findContours(image.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)        
+        contours.sort( key = cv2.contourArea,reverse=True)
+        c = contours[0]
+        M = cv2.moments(c)
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        #param = cv2.minEnclosingCircle(c)
+        param = (cx,cy)
+    except ValueError:
+        print("no contours")
+    except IndexError:
+        print("no contours")
+    except ZeroDivisionError:
+        print("no contours")
+    return (param)
 
-    return (cx,cy)
-
-def polarConv(image,kernel,center):
-    edge = cv2.Canny(image,100,200)    
-    edge = cv2.dilate(edge,kernel,iterations = 1)
-    polar = cv2.linearPolar(edge, center, 40, cv2.WARP_FILL_OUTLIERS)      
-    return polar
-    
-def rotateImg(image,center,angle,scale):
-    height, width = image.shape[:2]
-    M = cv2.getRotationMatrix2D(center, angle, scale)
-    rotated = cv2.warpAffine(image, M, (width, height))
-    return rotated
-
-def circConv(polar,rpolar,height,shiftkey):
-    res = np.zeros((1,int(height/shiftkey)))    
-    for i in range(int(height/shiftkey)):   
-        temp = circShifting(rpolar,(i+1)*shiftkey)
-        res[0][i] = np.sum(np.multiply(polar,temp))
-    return res
 
 
 #############Data-Loading####################
@@ -112,7 +91,9 @@ def circConv(polar,rpolar,height,shiftkey):
 pathname = "../../data/fingers/fingers/train/"
 dir_list = os.listdir(pathname)
 
-frame = cv2.imread(pathname + dir_list[14])
+frame = cv2.imread(pathname + dir_list[25])
+#lower_blue = np.array([86, 45, 36]) #pic
+#upper_blue = np.array([122, 255, 215]) #pic
 lower_blue = np.array([0, 0, 84])
 upper_blue = np.array([179, 255, 255])
 
@@ -129,48 +110,24 @@ cap = cv2.VideoCapture(0)
 while True:
     #_,frame = cap.read()
     height, width = frame.shape[:2]
-    closing = preProcess(frame)
-    center = findCentroid(closing,frame)
-    
-    kernel = np.ones((3,3),np.uint8)    
-    polar = polarConv(closing,kernel,center)
-    cv2.imshow("polar",polar)
+    closing = preProcess(frame.copy())
+    param = findCentroid(closing,frame)
+    print(param)
+    #frame = cv2.circle(frame.copy(),(int(param[0][0]),int(param[0][1])),int(param[1]), (0,0,255), 1)
+    #cv2.rectangle(frame,(xg,yg),(xg+wg, yg+hg),(0,255,0),2)
+
     cv2.imshow("RGB",frame)
     cv2.imshow("closing",closing)
     
-    #data gen
-    scale = 1
-    angle = 60  
-    rclosing = rotateImg(closing,center,angle,scale)
-    cv2.imshow("rclosing",rclosing)
-    rpolar = polarConv(rclosing,kernel,center)    
-    cv2.imshow("rpolar",rpolar)
-    
-   
+
     key = cv2.waitKey(1)
     if key == 27:
         break
-
- ##convolution
-shiftkey = 1 #no of gaps between conv)
-res = circConv(polar,rpolar,height,shiftkey)
-ans = np.where(res == np.amax(res))
-print((ans[1]+1)*360/128)
 
 
 cap.release()
 cv2.destroyAllWindows()
 
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
 cv2.waitKey(1)
 cv2.waitKey(1)
 cv2.waitKey(1)
